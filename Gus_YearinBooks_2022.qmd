@@ -1,0 +1,65 @@
+---
+title: "Gus's Year in Books, 2022"
+format: revealjs
+editor: visual
+---
+
+```{r}
+#| echo: FALSE
+#| output: FALSE
+data<-read_csv("goodreads_library_export.csv")%>%
+  select()
+names(data)<-str_replace_all(names(data), pattern = " ", replacement = "_" )
+
+small_data<-data%>%
+  select(Book_Id, Title, Author, My_Rating, Average_Rating, Number_of_Pages, Original_Publication_Year, Date_Read)
+# small_data%>%
+#   filter(is.na(Date_Read))%>%
+#   select(Title, Date_Read)%>%
+#   write_csv(file = "need_date_read.csv")
+author_birth<-read_tsv("author_birth.tsv")
+fixed_read<-read_csv("need_date_read.csv")
+full_data<-full_join(small_data,fixed_read, by="Title")%>%
+  mutate(Date_Read = case_when(is.na(Date_Read.x)~Date_Read.y,
+                               TRUE~Date_Read.x))%>%
+  left_join(author_birth)
+```
+
+## For the first time this year, I started tracking the books I read
+
+- Slide one content
+
+## And given my love of data visualization, I thought I'd give you a little closer look into my annual library
+
+## Over this year I read 66 books
+
+-
+
+```{r}
+full_data%>%
+  arrange(Date_Read)%>%
+  mutate(index = c(1:66))%>%
+  ggplot(aes(x=Date_Read, y=index))+
+  geom_point()+
+  geom_path()+
+  theme_classic()+
+  labs(y="Total Books Read", y="Date") 
+```
+
+## 
+
+## My books varied by length
+
+Like stacked books?
+
+## By age
+
+Timeline?
+
+## And by Geography
+
+Map
+
+## Usually my ratings matched others'
+
+## But sometimes we REALLY disagreed
