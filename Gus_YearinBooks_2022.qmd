@@ -1,65 +1,269 @@
 ---
-title: "Gus's Year in Books, 2022"
-format: revealjs
+format: 
+  revealjs:
+    theme: blood
 editor: visual
 ---
+# Gus's Year in Books
+
+## Hi!
+
+I'm Gus, and if you see me, I'll usually have a book in-hand
+
+![](images/IMG_2167.jpeg){fig-align="center" height="350"} ![](images/IMG_4660-01.jpeg){fig-align="center" height="350"} ![](images/IMG_8509.jpeg){fig-align="center" height="350"}
+
+## I'm a reader, but I'm also a coder
+
+And given my love of data visualization, I thought I'd give you a closer look into my annual library, using my skills in R
+
+## This year, I read 67 books
 
 ```{r}
 #| echo: FALSE
 #| output: FALSE
-data<-read_csv("goodreads_library_export.csv")%>%
-  select()
+library(tidyverse)
+library(lubridate)
+data<-read_csv("goodreads_library_export.csv")
+
 names(data)<-str_replace_all(names(data), pattern = " ", replacement = "_" )
 
 small_data<-data%>%
   select(Book_Id, Title, Author, My_Rating, Average_Rating, Number_of_Pages, Original_Publication_Year, Date_Read)
-# small_data%>%
-#   filter(is.na(Date_Read))%>%
-#   select(Title, Date_Read)%>%
-#   write_csv(file = "need_date_read.csv")
 author_birth<-read_tsv("author_birth.tsv")
 fixed_read<-read_csv("need_date_read.csv")
 full_data<-full_join(small_data,fixed_read, by="Title")%>%
   mutate(Date_Read = case_when(is.na(Date_Read.x)~Date_Read.y,
-                               TRUE~Date_Read.x))%>%
+                               TRUE~lubridate::as_date(Date_Read.x,format = "%m/%d/%y")))%>%
   left_join(author_birth)
 ```
 
-## For the first time this year, I started tracking the books I read
-
-- Slide one content
-
-## And given my love of data visualization, I thought I'd give you a little closer look into my annual library
-
-## Over this year I read 66 books
-
--
-
 ```{r}
-full_data%>%
+#| warning: false
+library(gganimate)
+full_data$images<-map_chr(as.character(full_data$Book_Id), \(x) list.files("book_cover_images", pattern = x, full.names = T))
+asp_ratio<-1.8
+full_data$plain_image<-"book_cover_images/plain_book.png"
+arr_data<-full_data%>%
   arrange(Date_Read)%>%
-  mutate(index = c(1:66))%>%
-  ggplot(aes(x=Date_Read, y=index))+
-  geom_point()+
-  geom_path()+
+  mutate(index = c(1:67))
+plot1<-arr_data%>%
+  ggplot(aes(x=month(Date_Read, label = T), y=index))+
+  geom_point(size=4, color = "#eee7e2", color = NA)+
   theme_classic()+
-  labs(y="Total Books Read", y="Date") 
+  labs(y="Total Books Read", x="Date")+
+  theme(
+    panel.background = element_rect(fill='#2D2D2D'),
+    plot.background = element_rect(fill='#2D2D2D', color=NA),
+    text = element_text(color = "#eee7e2", size=20),
+    axis.text = element_text(color = "#eee7e2"),
+    axis.line  = element_line(color = "#eee7e2"),
+    axis.ticks  = element_line(color = "#eee7e2")
+  )+
+  geom_text(data = filter(arr_data, index == 67), size = 5, aes(label = paste("Total:",index)), x=11, color = "#eee7e2", hjust=1)+
+  geom_segment(data = filter(arr_data, index == 67),aes(xend = 11, yend = index), linetype = 2, color = "#eee7e2")+
+  geom_text(data = filter(arr_data, index == 36), size = 5, aes(label = paste("Quit my job")), x=5, color = "#eee7e2", hjust=1)+
+  geom_segment(data = filter(arr_data, index == 36),aes(xend = 5, yend = index), linetype = 2, color = "#eee7e2")+
+    geom_text(data = filter(arr_data, index == 47), size = 5, aes(label = paste("Started grad school")), x=6, color = "#eee7e2", hjust=1)+
+  geom_segment(data = filter(arr_data, index == 47),aes(xend = 6, yend = index), linetype = 2, color = "#eee7e2")+
+  coord_cartesian(xlim = c(1,14))+
+  transition_states(index, wrap=F, transition_length = 3, state_length = 1)+
+  shadow_mark()+
+  enter_fade()
+
+animate(plot1, nframes = 67, fps = 15, renderer= gifski_renderer(loop=FALSE))
+
 ```
 
-## 
 
-## My books varied by length
+## I read little novellas and big epics {.smaller}
 
-Like stacked books?
+```{r}
+#| message: false
+library(see)
+page_arr<-full_data%>%
+  arrange(Number_of_Pages)
+plot2<-page_arr[c(1,67,4, 10, 20, 30, 40, 50,55,62),]%>%
+  ggplot(aes(x=as.factor(1),y = Number_of_Pages))+
+  ggbeeswarm::geom_beeswarm(data = full_data, side = 1, color = "#eee7e2", cex = 12, size=4)+
+  geom_text(aes(label = paste0(Title, ": ", Number_of_Pages, "    ")), hjust = 1, color = "#eee7e2", size=6, alpha=0.8)+
+  labs(y = "Number of Pages", x = "Distribution")+
+  coord_cartesian(xlim=c(.85, 1.1))+
+  theme_classic()+
+  theme(
+    panel.background = element_rect(fill="#2D2D2D"),
+    plot.background = element_rect(fill='#2D2D2D', color=NA),
+    text = element_text(color = "#eee7e2", size=20),
+    axis.text = element_text(color = "#eee7e2"),
+    axis.text.x = element_blank(),
+    axis.line  = element_line(color = "#eee7e2"),
+    axis.ticks  = element_line(color = "#eee7e2")
+  )+
+  transition_states(Number_of_Pages, wrap=F)+
+  shadow_mark()+
+  enter_fade()
+animate(plot2,nframes=67, fps = 15, renderer= gifski_renderer(loop=FALSE))
 
-## By age
+```
 
-Timeline?
+<font size="4">My longest book was Midnight's Children, by Salman Rushdie, while my shortest book was Carmilla, by Sheridan Le Fanu</font>
 
-## And by Geography
+## I read across 150 years
 
-Map
+::: columns
+::: {.column width="50%"}
+Sentimental Education,
 
-## Usually my ratings matched others'
+1869
 
-## But sometimes we REALLY disagreed
+![](2183.jpg){width="248"}
+:::
+
+::: {.column width="50%"}
+Other Terrors,
+
+July 2022
+
+![](58312013.jpg){width="265"}
+:::
+:::
+
+## And across 14 countries {.scrollable}
+
+```{r}
+#| message: false
+#| warning: false
+#| output: false
+
+library(leaflet)
+library(sp)
+library(sf)
+library(maps)
+country_boundaries<-sf::st_read("maps/world-administrative-boundaries/world-administrative-boundaries.shp")
+
+geo_full_data<-full_data%>%
+  mutate(Birth = case_when(Birth=="United States"~"United States of America",
+                           Birth=="United Kingdom"~"U.K. of Great Britain and Northern Ireland",
+                           TRUE~Birth))
+
+
+author_list<-geo_full_data%>%
+  select(Birth, Author)%>%
+  unique()%>%
+  nest(!Birth)%>%
+  mutate(author_list = purrr::map(data, \(x) str_flatten(x[[1]], "<br>")))%>%
+  unnest(author_list)%>%
+  select(Birth, author_list)
+
+geo_count<-geo_full_data%>%
+  group_by(Birth)%>%
+  count()%>%
+  ungroup()%>%
+  left_join(author_list)%>%
+  rename(name = Birth, total_books = n)
+ncb1<-country_boundaries%>%
+  left_join(geo_count)%>%
+   mutate(Present = is.na(total_books))
+ncbpos<-ncb1%>%
+  filter(!Present)
+ncbneg<-ncb1%>%
+  filter(Present)
+labels <- sprintf(
+  "<strong>%s</strong><br/>%g book(s) read by:<br>%s",
+  ncbpos$name, ncbpos$total_books, ncbpos$author_list) %>% 
+  lapply(htmltools::HTML)
+```
+
+```{r}
+leaflet()%>%
+  addProviderTiles(providers$Stamen.TonerBackground)%>%
+  addPolygons(data=ncbneg, color = NA, fill = T, fillColor = "#eee7e2", fillOpacity=.2)%>%
+  addPolygons(data = ncbpos, color = NA, fill = T, fillColor = "#2F79A5",
+              label = labels,
+              fillOpacity = .8)%>%
+  setView(lng = 0, lat = 30, zoom = 2)
+```
+
+<font size="6">Feel free to hover to see which authors I've read from each country!</font>
+
+## I learned to not trust reviews {.smaller .scrollable}
+
+```{r}
+#Running ordered logistic regression
+
+ord_data<-full_data%>%
+  mutate(My_Rating = factor(My_Rating, order = T, levels = c(1:5)))
+  
+ord_log<-MASS::polr(My_Rating~Average_Rating, data = ord_data)
+
+pred_data<-data.frame(Average_Rating = seq(3,5,0.001))
+pred_data$Predicted<-predict(ord_log, pred_data)
+correlation<-cor(as.numeric(ord_data$My_Rating), ord_data$Average_Rating, method = "spearman")%>%round(2)
+ord_data%>%
+  ggplot(aes(x=Average_Rating, y=My_Rating))+
+  geom_point(data = pred_data, aes(y = Predicted), color = "#388EC2", size=4)+
+  geom_point(color = "#eee7e2", size=4, alpha=0.8)+
+  theme_classic()+
+  annotate(geom = "text", label = substitute(paste("Spearman's"~rho~"="~cor), list(cor = correlation)), x = 3.4, y = 4.5, hjust=0,color = "#eee7e2")+
+  coord_cartesian(xlim=c(3.4, 4.6))+
+  labs(y="My Rating", x = "Average Rating")+
+  theme(
+    panel.background = element_rect(fill='#222222'),
+    plot.background = element_rect(fill='#222222', color=NA),
+    text = element_text(color = "#eee7e2", size=20),
+    axis.text = element_text(color = "#eee7e2"),
+    axis.line  = element_line(color = "#eee7e2"),
+    axis.ticks  = element_line(color = "#eee7e2")
+  )
+ 
+
+```
+
+<font size="4">I plotted my rating of a book compared to its average rating. The blue bars show predicted ratings produced by an ordinal regression.</font>
+
+------------------------------------------------------------------------
+
+```{r}
+
+biggest_diffneg<-full_data%>%
+  mutate(rating_diff = Average_Rating-My_Rating)%>%
+  slice_max(order_by = rating_diff, n=1)%>%
+  select(Title, Author, My_Rating, Average_Rating)
+
+biggest_diffpos<-full_data%>%
+  mutate(rating_diff = Average_Rating-My_Rating)%>%
+  slice_min(order_by = rating_diff, n=1)%>%
+  select(Title, Author, My_Rating, Average_Rating)
+
+rbind(biggest_diffneg, biggest_diffpos)%>%
+  rename(`My Rating` = My_Rating, `Average Rating` = Average_Rating)%>%
+  gt::gt()%>%
+  gt::tab_header(title = "Books where I most diverged")
+```
+
+## And here are some of my favorites:
+
+```{r}
+manual_table<-data.frame(
+  `The series:` = c("The Neapolitan Novels", "The Broken Earth Trilogy", "",""),
+  `The gays:` = c("The Song of Achilles", "Cleanness", "Detransition, Baby","Happy-Go-Lucky"),
+  `The girlies:` = c("Circe","Either/Or","No One is Talking About This",""),
+  check.names = F
+)
+library(gt)
+
+manual_table%>%
+  gt()%>%
+  tab_style(style = cell_text(color = "#388EC2", weight = "bold"), locations=cells_column_labels(1))%>%
+  tab_style(style = cell_text(color = "#DD6E42", weight = "bold"), locations=cells_column_labels(2))%>%
+  tab_style(style = cell_text(color = "#2BC016", weight = "bold"), locations=cells_column_labels(3))%>%
+  tab_style(style=cell_fill(color = "#222222"), locations = cells_body())%>%
+  tab_style(style=cell_fill(color = "#222222"), locations = cells_column_labels())%>%
+  tab_style(style=cell_borders(color = "#222222"), locations = cells_body())%>%
+  tab_style(style=cell_borders(color = "#222222"), locations = cells_column_labels())%>%
+  tab_style(style=cell_text(color = "#eee7e2", size="x-large"), locations = cells_body())
+```
+
+
+# Thanks for staying with me
+
+Feel free to follow [\@AugustusPendle1](https://mobile.twitter.com/augustuspendle1) on Twitter and peruse my [personal website](gus-pendleton@github.io)

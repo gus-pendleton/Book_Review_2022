@@ -3,3 +3,9 @@
 .RData
 .Ruserdata
 /book_cover_images/
+Gus_YearinBooks_2022_files/
+.DS_Store
+*.jpg
+*.gif
+maps/
+images/
